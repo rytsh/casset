@@ -2,21 +2,26 @@
 
 Casset is double linked endless memory library.
 
-It always generate new space automatically for you so you cannot go to end of the list with next but you can manage it easily.
+Always generate new space automatically.
 
 Memory hold length, front, back and current location  
 Element hold value belong memory address and next, previos elements address.
-
-## Usage
-
-```go
-
-```
 
 ## Installation
 
 ```sh
 go get github.com/rytsh/casset
+```
+
+## Usage
+
+```go
+l := casset.NewMemory("My First Element").Current
+l.Next("second element").Next(3.14).Next(struct{ v string }{v: "4th element"})
+
+for e := l.GetMemory().GetFront(); e != nil; e = e.GetNextElement() {
+    fmt.Println(e.GetValue())
+}
 ```
 
 ## License
