@@ -103,7 +103,6 @@ func (e *Element) Delete() IElement {
 
 		// celanup
 		e.cleanup()
-		e = nil
 
 		return ret
 	}
@@ -113,14 +112,14 @@ func (e *Element) Delete() IElement {
 		e.Memory.SetFront(nil)
 		e.Memory.SetBack(nil)
 		e.Memory.SetCurrent(nil)
-		e.Memory.GetLen().Sub(1)
+		e.Memory.GetLen().Set(0)
 
-		// celanup
 		e.cleanup()
-		e = nil
 
 		return nil
 	}
+
+	ret := e.NextElement
 
 	switch e {
 	case e.Memory.GetFront():
@@ -137,6 +136,9 @@ func (e *Element) Delete() IElement {
 
 		e.Memory.SetBack(e.PrevElement)
 		e.PrevElement.SetNextElement(nil)
+
+		// next element is nil so we need to set return element to prev element
+		ret = e.PrevElement
 	default:
 		if e.Memory.GetCurrent() == e {
 			e.Memory.SetCurrent(e.NextElement)
@@ -146,13 +148,9 @@ func (e *Element) Delete() IElement {
 		e.PrevElement.SetNextElement(e.NextElement)
 	}
 
-	e.Memory.GetLen().Sub(uint(1))
+	e.Memory.GetLen().Sub(1)
 
-	ret := e.NextElement
-
-	// celanup
 	e.cleanup()
-	e = nil
 
 	if ret == nil {
 		return nil

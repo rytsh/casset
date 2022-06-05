@@ -155,54 +155,78 @@ func TestMemory_Remove(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		fields  func() (*Memory, uint)
-		args    args
-		want    func(*Memory) IElement
-		wantLen uint
+		name        string
+		fields      func() (*Memory, uint)
+		args        args
+		wantFront   func(*Memory) (IElement, IElement)
+		wantCurrent func(*Memory) (IElement, IElement)
+		wantBack    func(*Memory) (IElement, IElement)
+		wantLen     uint
 	}{
 		{
-			name: "basic test",
-			fields: func() (*Memory, uint) {
-				m := NewMemory(0)
-				m.Current = m.Current.Next(1).Next(2).Next(3).Next(4).Prev(nil)
-				return m, 5
-			},
-			args: args{
-				e1: func(m *Memory) IElement { return nil },
-				e2: func(m *Memory) IElement { return m.Current.GetPrevElement() },
-			},
-			want: func(m *Memory) IElement {
-				return &Element{
-					NextElement: m.Current.GetNextElement().(*Element),
-					PrevElement: nil,
-					Memory:      m,
-					Value:       3,
-				}
-			},
-			wantLen: 2,
-		},
-		{
-			name: "reverse test",
+			name: "remove all",
 			fields: func() (*Memory, uint) {
 				m := NewMemory(0)
 				m.Current = m.Current.Next(1).Next(2).Next(3).Next(4).GetPrevElement()
 				return m, 5
 			},
 			args: args{
-				e1: func(m *Memory) IElement { return m.Current },
-				e2: func(m *Memory) IElement { return m.Front },
+				e1: func(m *Memory) IElement { return nil },
+				e2: func(m *Memory) IElement { return nil },
 			},
-			want: func(m *Memory) IElement {
+			wantFront: func(m *Memory) (IElement, IElement) {
+				return nil, nil
+			},
+			wantCurrent: func(m *Memory) (IElement, IElement) {
+				return nil, nil
+			},
+			wantBack: func(m *Memory) (IElement, IElement) {
+				return nil, nil
+			},
+			wantLen: 0,
+		},
+		{
+			name: "basic test",
+			fields: func() (*Memory, uint) {
+				m := NewMemory(0)
+				m.Current = m.Current.Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+				return m, 5
+			},
+			args: args{
+				e1: func(m *Memory) IElement { return nil },
+				e2: func(m *Memory) IElement { return m.Current.GetPrevElement() },
+			},
+			wantCurrent: func(m *Memory) (IElement, IElement) {
 				return &Element{
-					NextElement: nil,
-					PrevElement: m.Current.GetPrevElement().GetPrevElement().(*Element),
+					NextElement: m.Current.GetNextElement().(*Element),
+					PrevElement: nil,
 					Memory:      m,
-					Value:       2,
-				}
+					Value:       3,
+				}, m.Current
 			},
 			wantLen: 2,
 		},
+		// {
+		// 	name: "reverse test",
+		// 	fields: func() (*Memory, uint) {
+		// 		m := NewMemory(0)
+		// 		m.Current = m.Current.Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+		// 		return m, 5
+		// 	},
+		// 	args: args{
+		// 		e1: func(m *Memory) IElement { return m.Current },
+		// 		e2: func(m *Memory) IElement { return m.Front },
+		// 	},
+		// 	wantCurrent: func(m *Memory) (IElement, IElement) {
+		// 		return &Element{
+		// 			NextElement: nil,
+		// 			PrevElement: m.Current.GetPrevElement().GetPrevElement().(*Element),
+		// 			Memory:      m,
+		// 			Value:       2,
+		// 		}, m.Current
+		// 	},
+		// 	wantLen: 2,
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -212,15 +236,27 @@ func TestMemory_Remove(t *testing.T) {
 					t.Errorf("Len problem create %v, want %v", m.len.GetValueCurrent(), length)
 				}
 
-				want := tt.want(m)
-				m.Remove(tt.args.e1(m), tt.args.e2(m))
-
-				if !reflect.DeepEqual(m.Current, want) {
-					t.Errorf("current = %v, want %v", m.Current, want)
+				wants := map[string]func(*Memory) (IElement, IElement){
+					"Front":   tt.wantFront,
+					"Current": tt.wantCurrent,
+					"Back":    tt.wantBack,
 				}
 
-				if m.len.Cmp(tt.wantLen) != 0 {
-					t.Errorf("Len problem after delete %v, want %v", m.len.GetValueCurrent(), tt.wantLen)
+				for name, wantFn := range wants {
+					if wantFn == nil {
+						continue
+					}
+
+					want, check := wantFn(m)
+					m.Remove(tt.args.e1(m), tt.args.e2(m))
+
+					if !reflect.DeepEqual(check, want) {
+						t.Errorf("%s = %+v, want %+v", name, check, want)
+					}
+
+					if m.len.Cmp(tt.wantLen) != 0 {
+						t.Errorf("Len problem after delete %v, want %v", m.len.GetValueCurrent(), tt.wantLen)
+					}
 				}
 			}
 		})

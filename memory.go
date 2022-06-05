@@ -56,10 +56,6 @@ func (m *Memory) Init(e IElement) IMemory {
 // Remove remove range of elements.
 // If elements not inside of memory, nothing change.
 func (m *Memory) Remove(e1, e2 IElement) {
-	if e1 == nil && e2 == nil {
-		return
-	}
-
 	if e1 != nil && e1.GetMemory() != m {
 		return
 	}
@@ -71,96 +67,22 @@ func (m *Memory) Remove(e1, e2 IElement) {
 	front := e1
 	back := e2
 
-	var (
-		fixFront   bool
-		fixBack    bool
-		fixCurrent bool
-	)
-
 	if e1 == nil {
 		front = m.Front
-		fixFront = true
 	}
 
 	if e2 == nil {
 		back = m.Back
-		fixBack = true
 	}
-
-	frontPrev := front.GetPrevElement()
-	// frontNext := front.GetNextElement()
-	// backPrev := back.GetPrevElement()
-	backNext := back.GetNextElement()
 
 	current := front
-	count := NewLen(0)
 
-	deleteElement := func(current IElement) IElement {
-		switch current {
-		case m.Current:
-			fixCurrent = true
-		case m.Front:
-			fixFront = true
-		case m.Back:
-			fixBack = true
-		}
-
-		current.SetPrevElement(nil)
-		current.SetMemory(nil)
-		current.SetValue(nil)
-
-		current = current.GetNextElement()
-
-		if current != nil {
-			current.SetPrevElement(nil)
-		}
-
-		count.Add(1)
-
-		return current
-	}
-
-	for current != back {
-		current = deleteElement(current)
-
-		// reverse delete
-		if current == nil && back != nil {
-			current = m.Front
-		}
+	for current != back && current != nil {
+		current = current.Delete()
 	}
 
 	// delete back
-	if current != nil {
-		current = deleteElement(current)
-	}
-
-	if current == nil || count.IsZero() {
-		return
-	}
-
-	m.len.SubLen(count)
-
-	if m.len.IsZero() {
-		return
-	}
-
-	// fix memory front, back, current
-	if fixFront {
-		m.Front = backNext
-		m.Front.SetPrevElement(nil)
-	}
-
-	if fixBack {
-		m.Back = frontPrev
-		m.Back.SetNextElement(nil)
-	}
-
-	if fixCurrent {
-		m.Current = frontPrev
-	}
-
-	if !fixBack && !fixFront {
-		frontPrev.SetNextElement(backNext)
-		backNext.SetPrevElement(frontPrev)
+	if current == back && current != nil {
+		current.Delete()
 	}
 }

@@ -5,7 +5,7 @@ Casset is double linked endless memory library.
 Always generate new space automatically.
 
 Memory hold length, front, back and current location  
-Element hold value belong memory address and next, previos elements address.
+Element hold value belong memory address and next, previous elements address.
 
 ## Installation
 

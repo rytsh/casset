@@ -10,9 +10,9 @@ type Len struct {
 var _ ILen = &Len{}
 
 // NewLen creates a new Len with the given value.
-func NewLen(val uint) *Len {
+func NewLen(v uint) *Len {
 	return &Len{
-		current: &Element{Value: val},
+		current: &Element{Value: v},
 	}
 }
 
@@ -23,6 +23,13 @@ func (l *Len) IsZero() bool {
 	}
 
 	return true
+}
+
+// IsZero returns true if the len is zero.
+func (l *Len) Set(v uint) ILen {
+	l.current = &Element{Value: v}
+
+	return l
 }
 
 // GetValueCurrent returns the current value of the len not all len value.
@@ -61,12 +68,12 @@ func (l *Len) AddLen(l2 ILen) ILen {
 }
 
 // Sub subtracts the given value from the len.
-func (l *Len) Sub(val uint) ILen {
-	if val >= l.current.GetValue().(uint) {
+func (l *Len) Sub(v uint) ILen {
+	if v >= l.current.GetValue().(uint) {
 		if l.current.GetPrevElement() != nil {
-			val -= l.current.GetValue().(uint)
+			v -= l.current.GetValue().(uint)
 			l.current = l.current.Delete()
-			l.current.SetValue(l.current.GetValue().(uint) - val)
+			l.current.SetValue(l.current.GetValue().(uint) - v)
 
 			return l
 		}
@@ -76,23 +83,23 @@ func (l *Len) Sub(val uint) ILen {
 		return l
 	}
 
-	l.current.SetValue(l.current.GetValue().(uint) - val)
+	l.current.SetValue(l.current.GetValue().(uint) - v)
 
 	return l
 }
 
 // Add adds the given value to the len.
-func (l *Len) Add(val uint) ILen {
-	if maxUint-l.current.GetValue().(uint) >= val {
-		l.current.SetValue(l.current.GetValue().(uint) + val)
+func (l *Len) Add(v uint) ILen {
+	if maxUint-l.current.GetValue().(uint) >= v {
+		l.current.SetValue(l.current.GetValue().(uint) + v)
 
 		return l
 	}
 
-	val -= maxUint - l.current.GetValue().(uint)
+	v -= maxUint - l.current.GetValue().(uint)
 	l.current.SetValue(maxUint)
 
-	l.current = l.current.Next(val)
+	l.current = l.current.Next(v)
 
 	return l
 }
@@ -102,8 +109,11 @@ func (l *Len) Add(val uint) ILen {
 //   -1 if x <  y
 //    0 if x == y
 //   +1 if x >  y
-//
 func (l *Len) Cmp(y uint) int {
+	if l.current.GetPrevElement() != nil {
+		return 1
+	}
+
 	if l.current.GetValue().(uint) > y {
 		return 1
 	}
