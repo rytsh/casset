@@ -6,25 +6,25 @@ import (
 )
 
 func TestElement_Next(t *testing.T) {
-	testMemory := NewMemory(nil)
+	testMemory := NewMemory[any]().Init(NewElement[any](nil))
 	type args struct {
-		current *Element
+		current IElement[any]
 		v       interface{}
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Element
+		want IElement[any]
 	}{
 		{
 			name: "next with value number",
 			args: args{
-				current: testMemory.Current.(*Element),
+				current: testMemory.GetFront(),
 				v:       10,
 			},
-			want: &Element{
+			want: &Element[any]{
 				NextElement: nil,
-				PrevElement: testMemory.Front.(*Element),
+				PrevElement: testMemory.GetFront(),
 				Memory:      testMemory,
 				Value:       10,
 			},
@@ -32,12 +32,12 @@ func TestElement_Next(t *testing.T) {
 		{
 			name: "next with exist",
 			args: args{
-				current: testMemory.Front.(*Element),
+				current: testMemory.GetFront(),
 				v:       1000,
 			},
-			want: &Element{
+			want: &Element[any]{
 				NextElement: nil,
-				PrevElement: testMemory.Front.(*Element),
+				PrevElement: testMemory.GetFront(),
 				Memory:      testMemory,
 				Value:       10,
 			},
@@ -53,24 +53,24 @@ func TestElement_Next(t *testing.T) {
 }
 
 func TestElement_Prev(t *testing.T) {
-	testMemory := NewMemory(nil)
+	testMemory := NewMemory[any]().Init(NewElement[any](nil))
 	type args struct {
-		current *Element
+		current IElement[any]
 		v       interface{}
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Element
+		want IElement[any]
 	}{
 		{
 			name: "prev with value number",
 			args: args{
-				current: testMemory.Current.(*Element),
+				current: testMemory.GetFront(),
 				v:       10,
 			},
-			want: &Element{
-				NextElement: testMemory.Back.(*Element),
+			want: &Element[any]{
+				NextElement: testMemory.GetBack(),
 				PrevElement: nil,
 				Memory:      testMemory,
 				Value:       10,
@@ -87,156 +87,172 @@ func TestElement_Prev(t *testing.T) {
 }
 
 func TestMemory_Delete(t *testing.T) {
-	testMemory := NewMemory(0)
-	testMemory.Current = testMemory.Current.Next(1).Next(2).Next(3).Next(4).Prev(nil).Prev(nil)
+	testMemory := NewMemory[any]().Init(NewElement[any](0))
+	current := testMemory.GetFront().Next(1).Next(2).Next(3).Next(4).Prev(nil).Prev(nil)
 
-	if testMemory.len.Cmp(5) != 0 {
+	if testMemory.GetLen().Cmp(5) != 0 {
 		t.Errorf("Len problem")
 	}
 
-	testMemory.Current.Delete()
-	testMemory.Front.Delete()
-	testMemory.Back.Delete()
+	current = current.Delete()
+	testMemory.GetFront().Delete()
+	testMemory.GetBack().Delete()
 
-	if testMemory.len.Cmp(2) != 0 {
+	if testMemory.GetLen().Cmp(2) != 0 {
 		t.Errorf("Len problem after delete")
 	}
 
-	want := &Element{
+	want := &Element[any]{
 		NextElement: nil,
-		PrevElement: testMemory.Front.(*Element),
+		PrevElement: testMemory.GetFront(),
 		Memory:      testMemory,
 		Value:       3,
 	}
 
-	if !reflect.DeepEqual(testMemory.Current, want) {
-		t.Errorf("Element.Prev() = %v, want %v", testMemory.Current, want)
+	if !reflect.DeepEqual(current, want) {
+		t.Errorf("Element.Prev() = %v, want %v", current, want)
 	}
 
-	if err := testMemory.Back.Delete(); err != nil {
-		t.Error(err)
-	}
+	testMemory.GetBack().Delete()
 
-	want = &Element{
+	want = &Element[any]{
 		NextElement: nil,
 		PrevElement: nil,
 		Memory:      testMemory,
 		Value:       1,
 	}
 
-	if !reflect.DeepEqual(testMemory.Current, want) {
-		t.Errorf("Element.Prev() = %v, want %v", testMemory.Current, want)
+	if !reflect.DeepEqual(testMemory.GetFront(), want) {
+		t.Errorf("Element.Prev() = %v, want %v", current, want)
 	}
 
-	testMemory.Current.Delete()
+	testMemory.GetFront().Delete()
 
-	if testMemory.len.Cmp(0) != 0 {
+	if testMemory.GetLen().Cmp(0) != 0 {
 		t.Errorf("Len problem after delete")
 	}
 
-	testMemory.Init(&Element{Memory: testMemory, Value: 2})
+	testMemory.Init(&Element[any]{Memory: testMemory, Value: 2})
 
-	want = &Element{
+	want = &Element[any]{
 		NextElement: nil,
 		PrevElement: nil,
 		Memory:      testMemory,
 		Value:       2,
 	}
 
-	if !reflect.DeepEqual(testMemory.Current, want) {
-		t.Errorf("Element.Prev() = %v, want %v", testMemory.Current, want)
+	if !reflect.DeepEqual(testMemory.GetFront(), want) {
+		t.Errorf("Element.Prev() = %v, want %v", testMemory.GetFront(), want)
 	}
 }
 
 func TestMemory_Remove(t *testing.T) {
 	type args struct {
-		e1 func(*Memory) IElement
-		e2 func(*Memory) IElement
+		e1 func(IMemory[any]) IElement[any]
+		e2 func(IMemory[any]) IElement[any]
 	}
 
 	tests := []struct {
 		name        string
-		fields      func() (*Memory, uint)
+		fields      func() (IMemory[any], int64)
 		args        args
-		wantFront   func(*Memory) (IElement, IElement)
-		wantCurrent func(*Memory) (IElement, IElement)
-		wantBack    func(*Memory) (IElement, IElement)
-		wantLen     uint
+		wantFront   func(IMemory[any]) (IElement[any], IElement[any])
+		wantCurrent func(IMemory[any]) (IElement[any], IElement[any])
+		wantBack    func(IMemory[any]) (IElement[any], IElement[any])
+		wantLen     int64
 	}{
 		{
 			name: "remove all",
-			fields: func() (*Memory, uint) {
-				m := NewMemory(0)
-				m.Current = m.Current.Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+			fields: func() (IMemory[any], int64) {
+				m := NewMemory[any]().Init(NewElement[any](0))
+				m.Hold(func(h map[string]IElement[any]) {
+					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+				})
+
 				return m, 5
 			},
 			args: args{
-				e1: func(m *Memory) IElement { return nil },
-				e2: func(m *Memory) IElement { return nil },
+				e1: func(m IMemory[any]) IElement[any] { return nil },
+				e2: func(m IMemory[any]) IElement[any] { return nil },
 			},
-			wantFront: func(m *Memory) (IElement, IElement) {
+			wantFront: func(m IMemory[any]) (IElement[any], IElement[any]) {
 				return nil, nil
 			},
-			wantCurrent: func(m *Memory) (IElement, IElement) {
+			wantCurrent: func(m IMemory[any]) (IElement[any], IElement[any]) {
 				return nil, nil
 			},
-			wantBack: func(m *Memory) (IElement, IElement) {
+			wantBack: func(m IMemory[any]) (IElement[any], IElement[any]) {
 				return nil, nil
 			},
 			wantLen: 0,
 		},
 		{
 			name: "basic test",
-			fields: func() (*Memory, uint) {
-				m := NewMemory(0)
-				m.Current = m.Current.Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+			fields: func() (IMemory[any], int64) {
+				m := NewMemory[any]().Init(NewElement[any](0))
+				m.Hold(func(h map[string]IElement[any]) {
+					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+				})
 				return m, 5
 			},
 			args: args{
-				e1: func(m *Memory) IElement { return nil },
-				e2: func(m *Memory) IElement { return m.Current.GetPrevElement() },
+				e1: func(m IMemory[any]) IElement[any] { return nil },
+				e2: func(m IMemory[any]) IElement[any] {
+					var e IElement[any]
+					m.Hold(func(h map[string]IElement[any]) {
+						e = h["current"]
+					})
+					return e.GetPrevElement()
+				},
 			},
-			wantCurrent: func(m *Memory) (IElement, IElement) {
-				return &Element{
-					NextElement: m.Current.GetNextElement().(*Element),
+			wantCurrent: func(m IMemory[any]) (IElement[any], IElement[any]) {
+				var current IElement[any]
+				m.Hold(func(h map[string]IElement[any]) {
+					current = h["current"]
+				})
+
+				return &Element[any]{
+					NextElement: current.GetNextElement(),
 					PrevElement: nil,
 					Memory:      m,
 					Value:       3,
-				}, m.Current
+				}, current
 			},
 			wantLen: 2,
 		},
-		// {
-		// 	name: "reverse test",
-		// 	fields: func() (*Memory, uint) {
-		// 		m := NewMemory(0)
-		// 		m.Current = m.Current.Next(1).Next(2).Next(3).Next(4).GetPrevElement()
-		// 		return m, 5
-		// 	},
-		// 	args: args{
-		// 		e1: func(m *Memory) IElement { return m.Current },
-		// 		e2: func(m *Memory) IElement { return m.Front },
-		// 	},
-		// 	wantCurrent: func(m *Memory) (IElement, IElement) {
-		// 		return &Element{
-		// 			NextElement: nil,
-		// 			PrevElement: m.Current.GetPrevElement().GetPrevElement().(*Element),
-		// 			Memory:      m,
-		// 			Value:       2,
-		// 		}, m.Current
-		// 	},
-		// 	wantLen: 2,
-		// },
+		{
+			name: "reverse test",
+			fields: func() (IMemory[any], int64) {
+				m := NewMemory[any]().Init(NewElement[any](0))
+				m.Hold(func(h map[string]IElement[any]) {
+					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+				})
+
+				return m, 5
+			},
+			args: args{
+				e1: func(m IMemory[any]) IElement[any] {
+					var e IElement[any]
+					m.Hold(func(h map[string]IElement[any]) {
+						e = h["current"]
+					})
+
+					return e
+				},
+				e2: func(m IMemory[any]) IElement[any] { return m.GetFront() },
+			},
+			wantLen: 2,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.fields != nil {
 				m, length := tt.fields()
-				if m.len.Cmp(length) != 0 {
-					t.Errorf("Len problem create %v, want %v", m.len.GetValueCurrent(), length)
+				if m.GetLen().Cmp(length) != 0 {
+					t.Errorf("Len problem create %s, want %v", m.GetLen(), length)
 				}
 
-				wants := map[string]func(*Memory) (IElement, IElement){
+				wants := map[string]func(IMemory[any]) (IElement[any], IElement[any]){
 					"Front":   tt.wantFront,
 					"Current": tt.wantCurrent,
 					"Back":    tt.wantBack,
@@ -248,14 +264,14 @@ func TestMemory_Remove(t *testing.T) {
 					}
 
 					want, check := wantFn(m)
-					m.Remove(tt.args.e1(m), tt.args.e2(m))
+					m.RemoveRange(tt.args.e1(m), tt.args.e2(m))
 
 					if !reflect.DeepEqual(check, want) {
 						t.Errorf("%s = %+v, want %+v", name, check, want)
 					}
 
-					if m.len.Cmp(tt.wantLen) != 0 {
-						t.Errorf("Len problem after delete %v, want %v", m.len.GetValueCurrent(), tt.wantLen)
+					if m.GetLen().Cmp(tt.wantLen) != 0 {
+						t.Errorf("Len problem after delete %s, want %v", m.GetLen(), tt.wantLen)
 					}
 				}
 			}

@@ -1,61 +1,61 @@
 package casset
 
-type IElement interface {
-	// New generate new element with value and memory.
-	New(interface{}, IMemory) IElement
+import (
+	"iter"
+	"math/big"
+)
+
+type IElement[T any] interface {
+	// Clone return new element with same value.
+	Clone() IElement[T]
 	// GetMemory return memory of this element.
-	GetMemory() IMemory
+	GetMemory() IMemory[T]
 	// SetMemory set memory of this element.
-	SetMemory(m IMemory) IElement
+	SetMemory(m IMemory[T]) IElement[T]
 	// GetValue return value of this element.
-	GetValue() interface{}
+	GetValue() T
 	// GetNextElement return next element of this element.
-	GetNextElement() IElement
+	GetNextElement() IElement[T]
 	// GetPrevElement return prev element of this element.
-	GetPrevElement() IElement
+	GetPrevElement() IElement[T]
 	// SetValue set value of this element.
-	SetValue(v interface{})
+	SetValue(v T) IElement[T]
 	// SetNextElement set next element.
-	SetNextElement(IElement) IElement
+	SetNextElement(IElement[T]) IElement[T]
 	// SetPrevElement set prev element.
-	SetPrevElement(IElement) IElement
+	SetPrevElement(IElement[T]) IElement[T]
 	// Delete this element, reconnect prev and next if exist.
-	Delete() IElement
-	// Next generate new element with argument and return new element.
-	Next(interface{}) IElement
-	// Prev generate new element with argument and return new element.
-	Prev(interface{}) IElement
+	Delete() IElement[T]
+	// Next return next element if exist or generate new element with argument and return new element.
+	Next(T) IElement[T]
+	// Prev return prev element if exist or generate new element with argument and return new element.
+	Prev(T) IElement[T]
 }
 
-type IMemory interface {
-	Init(e IElement) IMemory
-	// Remove remove range of elements including e1 and e2.
+type IMemory[T any] interface {
+	Init(e IElement[T]) IMemory[T]
+	Hold(f func(h map[string]IElement[T]))
+	// RemoveRange remove range of elements including e1 and e2.
 	// If e1 is nil, start from front.
 	// If e2 is nil, end at back.
 	// Both e1 and e2 are nil, remove all.
-	Remove(e1, e2 IElement)
+	RemoveRange(e1, e2 IElement[T])
 	GetLen() ILen
-	GetFront() IElement
-	SetFront(e IElement)
-	GetBack() IElement
-	SetBack(e IElement)
-	GetCurrent() IElement
-	SetCurrent(e IElement)
+	GetFront() IElement[T]
+	SetFront(e IElement[T])
+	GetBack() IElement[T]
+	SetBack(e IElement[T])
+	Range() iter.Seq[IElement[T]]
 }
 
 type ILen interface {
-	IsZero() bool
-	Set(uint) ILen
-	GetValueCurrent() uint
-	GetElement() IElement
-	SubLen(ILen) ILen
-	AddLen(ILen) ILen
-	Sub(uint) ILen
-	Add(uint) ILen
+	Value() big.Int
+	Sub(int64) ILen
+	Add(int64) ILen
 	// Cmp compares x and y on current element and returns:
 	//
 	//   -1 if x <  y
 	//    0 if x == y
 	//   +1 if x >  y
-	Cmp(uint) int
+	Cmp(y int64) int
 }

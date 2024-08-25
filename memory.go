@@ -1,61 +1,77 @@
 package casset
 
+import "iter"
+
 // Memory is main struct of linked list.
-type Memory struct {
-	Front   IElement
-	Back    IElement
-	Current IElement
-	len     ILen
+type Memory[T any] struct {
+	Front    IElement[T]
+	Back     IElement[T]
+	Elements map[string]IElement[T]
+
+	len ILen
 }
 
-func NewMemory(v interface{}) *Memory {
-	m := new(Memory).Init(NewElement(v))
-	return m.(*Memory)
+// NewMemory return new empty memory. Before use, you must call Init method.
+func NewMemory[T any]() IMemory[T] {
+	return &Memory[T]{
+		len: NewLen(),
+	}
 }
 
-func (m *Memory) GetLen() ILen {
+func (m *Memory[T]) Hold(f func(h map[string]IElement[T])) {
+	if m.Elements == nil {
+		m.Elements = make(map[string]IElement[T])
+	}
+
+	f(m.Elements)
+}
+
+func (m *Memory[T]) Range() iter.Seq[IElement[T]] {
+	return func(yield func(IElement[T]) bool) {
+		for e := m.GetFront(); e != nil; e = e.GetNextElement() {
+			if !yield(e) {
+				return
+			}
+		}
+	}
+}
+
+func (m *Memory[T]) GetLen() ILen {
 	return m.len
 }
 
-func (m *Memory) GetFront() IElement {
+func (m *Memory[T]) GetFront() IElement[T] {
 	return m.Front
 }
 
-func (m *Memory) SetFront(e IElement) {
+func (m *Memory[T]) SetFront(e IElement[T]) {
 	m.Front = e
 }
 
-func (m *Memory) GetBack() IElement {
+func (m *Memory[T]) GetBack() IElement[T] {
 	return m.Back
 }
 
-func (m *Memory) SetBack(e IElement) {
+func (m *Memory[T]) SetBack(e IElement[T]) {
 	m.Back = e
 }
 
-func (m *Memory) GetCurrent() IElement {
-	return m.Current
-}
-
-func (m *Memory) SetCurrent(e IElement) {
-	m.Current = e
-}
-
-func (m *Memory) Init(e IElement) IMemory {
-	element := e.New(e.GetValue(), m)
+func (m *Memory[T]) Init(e IElement[T]) IMemory[T] {
+	element := e.Clone().SetMemory(m)
 
 	m.Front = element
 	m.Back = element
-	m.Current = element
 
-	m.len = NewLen(1)
+	m.Elements = make(map[string]IElement[T])
+
+	m.len = NewLen().Add(1)
 
 	return m
 }
 
 // Remove remove range of elements.
 // If elements not inside of memory, nothing change.
-func (m *Memory) Remove(e1, e2 IElement) {
+func (m *Memory[T]) RemoveRange(e1, e2 IElement[T]) {
 	if e1 != nil && e1.GetMemory() != m {
 		return
 	}
@@ -77,8 +93,12 @@ func (m *Memory) Remove(e1, e2 IElement) {
 
 	current := front
 
-	for current != back && current != nil {
+	for current != back {
 		current = current.Delete()
+
+		if current == nil {
+			current = m.GetFront()
+		}
 	}
 
 	// delete back

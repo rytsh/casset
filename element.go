@@ -1,55 +1,52 @@
 // Package casset help you to create memory on double linked list.
 package casset
 
-// Element is an struct of duble-linked list.
-type Element struct {
-	NextElement IElement
-	PrevElement IElement
+// Element is an struct of double-linked list.
+type Element[T any] struct {
+	NextElement IElement[T]
+	PrevElement IElement[T]
 
 	// Know about belong Memory
-	Memory IMemory
-	Value  interface{}
+	Memory IMemory[T]
+	Value  T
 }
 
 // Correction of interface.
-var _ IElement = &Element{}
+var _ IElement[any] = (*Element[any])(nil)
 
-func NewElement(v interface{}) *Element {
-	return &Element{
+func NewElement[T any](v T) IElement[T] {
+	return &Element[T]{
 		Value: v,
 	}
 }
 
-// New generate new element with value and memory.
-func (e Element) New(v interface{}, m IMemory) IElement {
-	return &Element{
-		Value:  v,
-		Memory: m,
+func (e *Element[T]) Clone() IElement[T] {
+	return &Element[T]{
+		Value: e.Value,
 	}
 }
 
-func (e *Element) cleanup() {
+func (e *Element[T]) cleanup() {
 	e.Memory = nil
 	e.NextElement = nil
 	e.PrevElement = nil
-	e.Value = nil
 }
 
-func (e *Element) GetMemory() IMemory {
+func (e *Element[T]) GetMemory() IMemory[T] {
 	return e.Memory
 }
 
-func (e *Element) SetMemory(m IMemory) IElement {
+func (e *Element[T]) SetMemory(m IMemory[T]) IElement[T] {
 	e.Memory = m
 
 	return e
 }
 
-func (e *Element) GetValue() interface{} {
+func (e *Element[T]) GetValue() T {
 	return e.Value
 }
 
-func (e *Element) GetNextElement() IElement {
+func (e *Element[T]) GetNextElement() IElement[T] {
 	if e.NextElement != nil {
 		return e.NextElement
 	}
@@ -57,7 +54,7 @@ func (e *Element) GetNextElement() IElement {
 	return nil
 }
 
-func (e *Element) GetPrevElement() IElement {
+func (e *Element[T]) GetPrevElement() IElement[T] {
 	if e.PrevElement != nil {
 		return e.PrevElement
 	}
@@ -65,19 +62,21 @@ func (e *Element) GetPrevElement() IElement {
 	return nil
 }
 
-func (e *Element) SetValue(v interface{}) {
+func (e *Element[T]) SetValue(v T) IElement[T] {
 	e.Value = v
+
+	return e
 }
 
 // SetNextElement set next element.
-func (e *Element) SetNextElement(element IElement) IElement {
+func (e *Element[T]) SetNextElement(element IElement[T]) IElement[T] {
 	e.NextElement = element
 
 	return e
 }
 
 // SetPrevElement set previous element.
-func (e *Element) SetPrevElement(element IElement) IElement {
+func (e *Element[T]) SetPrevElement(element IElement[T]) IElement[T] {
 	e.PrevElement = element
 
 	return e
@@ -85,7 +84,7 @@ func (e *Element) SetPrevElement(element IElement) IElement {
 
 // Delete this element, reconnect prev and next if exist.
 // When deleting current element, it will set current element to last or next element.
-func (e *Element) Delete() IElement {
+func (e *Element[T]) Delete() IElement[T] {
 	if e.Memory == nil {
 		if e.PrevElement != nil {
 			e.PrevElement.SetNextElement(e.NextElement)
@@ -97,11 +96,7 @@ func (e *Element) Delete() IElement {
 
 		// set return
 		ret := e.NextElement
-		if ret == nil {
-			ret = e.PrevElement
-		}
 
-		// celanup
 		e.cleanup()
 
 		return ret
@@ -111,8 +106,7 @@ func (e *Element) Delete() IElement {
 	if e.Memory.GetLen().Cmp(1) == 0 {
 		e.Memory.SetFront(nil)
 		e.Memory.SetBack(nil)
-		e.Memory.SetCurrent(nil)
-		e.Memory.GetLen().Set(0)
+		e.Memory.GetLen().Sub(1)
 
 		e.cleanup()
 
@@ -123,27 +117,12 @@ func (e *Element) Delete() IElement {
 
 	switch e {
 	case e.Memory.GetFront():
-		if e.Memory.GetCurrent() == e.Memory.GetFront() {
-			e.Memory.SetCurrent(e.NextElement)
-		}
-
 		e.Memory.SetFront(e.NextElement)
 		e.NextElement.SetPrevElement(nil)
 	case e.Memory.GetBack():
-		if e.Memory.GetCurrent() == e.Memory.GetBack() {
-			e.Memory.SetCurrent(e.PrevElement)
-		}
-
 		e.Memory.SetBack(e.PrevElement)
 		e.PrevElement.SetNextElement(nil)
-
-		// next element is nil so we need to set return element to prev element
-		ret = e.PrevElement
 	default:
-		if e.Memory.GetCurrent() == e {
-			e.Memory.SetCurrent(e.NextElement)
-		}
-
 		e.NextElement.SetPrevElement(e.PrevElement)
 		e.PrevElement.SetNextElement(e.NextElement)
 	}
@@ -152,17 +131,13 @@ func (e *Element) Delete() IElement {
 
 	e.cleanup()
 
-	if ret == nil {
-		return nil
-	}
-
 	return ret
 }
 
 // Next generate new element with argument and return new element.
-func (e *Element) Next(v interface{}) IElement {
+func (e *Element[T]) Next(v T) IElement[T] {
 	if e.NextElement == nil {
-		e.NextElement = &Element{
+		e.NextElement = &Element[T]{
 			Memory:      e.Memory,
 			PrevElement: e,
 			Value:       v,
@@ -170,7 +145,7 @@ func (e *Element) Next(v interface{}) IElement {
 
 		if e.Memory != nil {
 			e.Memory.SetBack(e.NextElement)
-			e.Memory.GetLen().Add(uint(1))
+			e.Memory.GetLen().Add(1)
 		}
 	}
 
@@ -178,9 +153,9 @@ func (e *Element) Next(v interface{}) IElement {
 }
 
 // Prev generate new element with argument and return new element.
-func (e *Element) Prev(v interface{}) IElement {
+func (e *Element[T]) Prev(v T) IElement[T] {
 	if e.PrevElement == nil {
-		e.PrevElement = &Element{
+		e.PrevElement = &Element[T]{
 			Memory:      e.Memory,
 			NextElement: e,
 			Value:       v,
@@ -188,7 +163,7 @@ func (e *Element) Prev(v interface{}) IElement {
 
 		if e.Memory != nil {
 			e.Memory.SetFront(e.PrevElement)
-			e.Memory.GetLen().Add(uint(1))
+			e.Memory.GetLen().Add(1)
 		}
 	}
 
