@@ -22,18 +22,12 @@ func (l *Len) Value() big.Int {
 	return *l.value
 }
 
-func (l *Len) Sub(n int64) ILen {
-	l.value.Sub(l.value, big.NewInt(n))
+func (l *Len) Set(f func(*big.Int) *big.Int) ILen {
+	l.value = f(l.value)
 
 	return l
 }
 
-func (l *Len) Add(n int64) ILen {
-	l.value.Add(l.value, big.NewInt(n))
-
-	return l
-}
-
-func (l *Len) Cmp(y int64) int {
-	return l.value.Cmp(big.NewInt(y))
+func (l *Len) Cmp(y *big.Int) int {
+	return l.value.Cmp(y)
 }

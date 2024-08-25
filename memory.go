@@ -1,29 +1,42 @@
 package casset
 
-import "iter"
+import (
+	"iter"
+	"math/big"
+)
 
 // Memory is main struct of linked list.
 type Memory[T any] struct {
-	Front    IElement[T]
-	Back     IElement[T]
-	Elements map[string]IElement[T]
+	front    IElement[T]
+	back     IElement[T]
+	elements map[string]IElement[T]
 
 	len ILen
 }
 
 // NewMemory return new empty memory. Before use, you must call Init method.
 func NewMemory[T any]() IMemory[T] {
-	return &Memory[T]{
-		len: NewLen(),
-	}
+	return (&Memory[T]{}).Clear()
+}
+
+func (m *Memory[T]) Clear() IMemory[T] {
+	element := new(Element[T])
+	element.SetMemory(m)
+
+	m.front = element
+	m.back = element
+
+	m.elements = make(map[string]IElement[T])
+
+	m.len = NewLen().Set(func(_ *big.Int) *big.Int {
+		return big.NewInt(1)
+	})
+
+	return m
 }
 
 func (m *Memory[T]) Hold(f func(h map[string]IElement[T])) {
-	if m.Elements == nil {
-		m.Elements = make(map[string]IElement[T])
-	}
-
-	f(m.Elements)
+	f(m.elements)
 }
 
 func (m *Memory[T]) Range() iter.Seq[IElement[T]] {
@@ -41,32 +54,19 @@ func (m *Memory[T]) GetLen() ILen {
 }
 
 func (m *Memory[T]) GetFront() IElement[T] {
-	return m.Front
+	return m.front
 }
 
 func (m *Memory[T]) SetFront(e IElement[T]) {
-	m.Front = e
+	m.front = e
 }
 
 func (m *Memory[T]) GetBack() IElement[T] {
-	return m.Back
+	return m.back
 }
 
 func (m *Memory[T]) SetBack(e IElement[T]) {
-	m.Back = e
-}
-
-func (m *Memory[T]) Init(e IElement[T]) IMemory[T] {
-	element := e.Clone().SetMemory(m)
-
-	m.Front = element
-	m.Back = element
-
-	m.Elements = make(map[string]IElement[T])
-
-	m.len = NewLen().Add(1)
-
-	return m
+	m.back = e
 }
 
 // Remove remove range of elements.
@@ -84,11 +84,11 @@ func (m *Memory[T]) RemoveRange(e1, e2 IElement[T]) {
 	back := e2
 
 	if e1 == nil {
-		front = m.Front
+		front = m.front
 	}
 
 	if e2 == nil {
-		back = m.Back
+		back = m.back
 	}
 
 	current := front

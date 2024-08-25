@@ -9,7 +9,7 @@ import (
 func Example() {
 	// create a memory with a first value
 	// value could be anything
-	l := casset.NewMemory[any]().Init(casset.NewElement[any]("My First Element")).GetFront()
+	l := casset.NewMemory[any]().GetFront().SetValue("My First Element")
 	l.Next("second element").Next(3.14).Next(struct{ v string }{v: "4th element"})
 
 	// for e := l.GetMemory().GetFront(); e != nil; e = e.GetNextElement() {

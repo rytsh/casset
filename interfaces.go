@@ -6,8 +6,6 @@ import (
 )
 
 type IElement[T any] interface {
-	// Clone return new element with same value.
-	Clone() IElement[T]
 	// GetMemory return memory of this element.
 	GetMemory() IMemory[T]
 	// SetMemory set memory of this element.
@@ -33,7 +31,8 @@ type IElement[T any] interface {
 }
 
 type IMemory[T any] interface {
-	Init(e IElement[T]) IMemory[T]
+	// Clear remove all elements.
+	Clear() IMemory[T]
 	Hold(f func(h map[string]IElement[T]))
 	// RemoveRange remove range of elements including e1 and e2.
 	// If e1 is nil, start from front.
@@ -50,12 +49,11 @@ type IMemory[T any] interface {
 
 type ILen interface {
 	Value() big.Int
-	Sub(int64) ILen
-	Add(int64) ILen
+	Set(func(*big.Int) *big.Int) ILen
 	// Cmp compares x and y on current element and returns:
 	//
 	//   -1 if x <  y
 	//    0 if x == y
 	//   +1 if x >  y
-	Cmp(y int64) int
+	Cmp(y *big.Int) int
 }

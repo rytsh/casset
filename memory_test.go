@@ -1,12 +1,13 @@
 package casset
 
 import (
+	"math/big"
 	"reflect"
 	"testing"
 )
 
 func TestElement_Next(t *testing.T) {
-	testMemory := NewMemory[any]().Init(NewElement[any](nil))
+	testMemory := NewMemory[any]()
 	type args struct {
 		current IElement[any]
 		v       interface{}
@@ -23,10 +24,10 @@ func TestElement_Next(t *testing.T) {
 				v:       10,
 			},
 			want: &Element[any]{
-				NextElement: nil,
-				PrevElement: testMemory.GetFront(),
-				Memory:      testMemory,
-				Value:       10,
+				nextElement: nil,
+				prevElement: testMemory.GetFront(),
+				memory:      testMemory,
+				value:       10,
 			},
 		},
 		{
@@ -36,10 +37,10 @@ func TestElement_Next(t *testing.T) {
 				v:       1000,
 			},
 			want: &Element[any]{
-				NextElement: nil,
-				PrevElement: testMemory.GetFront(),
-				Memory:      testMemory,
-				Value:       10,
+				nextElement: nil,
+				prevElement: testMemory.GetFront(),
+				memory:      testMemory,
+				value:       10,
 			},
 		},
 	}
@@ -53,7 +54,7 @@ func TestElement_Next(t *testing.T) {
 }
 
 func TestElement_Prev(t *testing.T) {
-	testMemory := NewMemory[any]().Init(NewElement[any](nil))
+	testMemory := NewMemory[any]()
 	type args struct {
 		current IElement[any]
 		v       interface{}
@@ -70,10 +71,10 @@ func TestElement_Prev(t *testing.T) {
 				v:       10,
 			},
 			want: &Element[any]{
-				NextElement: testMemory.GetBack(),
-				PrevElement: nil,
-				Memory:      testMemory,
-				Value:       10,
+				nextElement: testMemory.GetBack(),
+				prevElement: nil,
+				memory:      testMemory,
+				value:       10,
 			},
 		},
 	}
@@ -87,10 +88,10 @@ func TestElement_Prev(t *testing.T) {
 }
 
 func TestMemory_Delete(t *testing.T) {
-	testMemory := NewMemory[any]().Init(NewElement[any](0))
+	testMemory := NewMemory[any]()
 	current := testMemory.GetFront().Next(1).Next(2).Next(3).Next(4).Prev(nil).Prev(nil)
 
-	if testMemory.GetLen().Cmp(5) != 0 {
+	if testMemory.GetLen().Cmp(big.NewInt(5)) != 0 {
 		t.Errorf("Len problem")
 	}
 
@@ -98,15 +99,15 @@ func TestMemory_Delete(t *testing.T) {
 	testMemory.GetFront().Delete()
 	testMemory.GetBack().Delete()
 
-	if testMemory.GetLen().Cmp(2) != 0 {
+	if testMemory.GetLen().Cmp(big.NewInt(2)) != 0 {
 		t.Errorf("Len problem after delete")
 	}
 
 	want := &Element[any]{
-		NextElement: nil,
-		PrevElement: testMemory.GetFront(),
-		Memory:      testMemory,
-		Value:       3,
+		nextElement: nil,
+		prevElement: testMemory.GetFront(),
+		memory:      testMemory,
+		value:       3,
 	}
 
 	if !reflect.DeepEqual(current, want) {
@@ -116,10 +117,10 @@ func TestMemory_Delete(t *testing.T) {
 	testMemory.GetBack().Delete()
 
 	want = &Element[any]{
-		NextElement: nil,
-		PrevElement: nil,
-		Memory:      testMemory,
-		Value:       1,
+		nextElement: nil,
+		prevElement: nil,
+		memory:      testMemory,
+		value:       1,
 	}
 
 	if !reflect.DeepEqual(testMemory.GetFront(), want) {
@@ -128,17 +129,17 @@ func TestMemory_Delete(t *testing.T) {
 
 	testMemory.GetFront().Delete()
 
-	if testMemory.GetLen().Cmp(0) != 0 {
+	if testMemory.GetLen().Cmp(big.NewInt(1)) != 0 {
 		t.Errorf("Len problem after delete")
 	}
 
-	testMemory.Init(&Element[any]{Memory: testMemory, Value: 2})
+	testMemory.Clear().GetFront().SetValue(2)
 
 	want = &Element[any]{
-		NextElement: nil,
-		PrevElement: nil,
-		Memory:      testMemory,
-		Value:       2,
+		nextElement: nil,
+		prevElement: nil,
+		memory:      testMemory,
+		value:       2,
 	}
 
 	if !reflect.DeepEqual(testMemory.GetFront(), want) {
@@ -164,7 +165,7 @@ func TestMemory_Remove(t *testing.T) {
 		{
 			name: "remove all",
 			fields: func() (IMemory[any], int64) {
-				m := NewMemory[any]().Init(NewElement[any](0))
+				m := NewMemory[any]()
 				m.Hold(func(h map[string]IElement[any]) {
 					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
 				})
@@ -184,12 +185,12 @@ func TestMemory_Remove(t *testing.T) {
 			wantBack: func(m IMemory[any]) (IElement[any], IElement[any]) {
 				return nil, nil
 			},
-			wantLen: 0,
+			wantLen: 1,
 		},
 		{
 			name: "basic test",
 			fields: func() (IMemory[any], int64) {
-				m := NewMemory[any]().Init(NewElement[any](0))
+				m := NewMemory[any]()
 				m.Hold(func(h map[string]IElement[any]) {
 					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
 				})
@@ -212,10 +213,10 @@ func TestMemory_Remove(t *testing.T) {
 				})
 
 				return &Element[any]{
-					NextElement: current.GetNextElement(),
-					PrevElement: nil,
-					Memory:      m,
-					Value:       3,
+					nextElement: current.GetNextElement(),
+					prevElement: nil,
+					memory:      m,
+					value:       3,
 				}, current
 			},
 			wantLen: 2,
@@ -223,7 +224,7 @@ func TestMemory_Remove(t *testing.T) {
 		{
 			name: "reverse test",
 			fields: func() (IMemory[any], int64) {
-				m := NewMemory[any]().Init(NewElement[any](0))
+				m := NewMemory[any]()
 				m.Hold(func(h map[string]IElement[any]) {
 					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
 				})
@@ -248,7 +249,7 @@ func TestMemory_Remove(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.fields != nil {
 				m, length := tt.fields()
-				if m.GetLen().Cmp(length) != 0 {
+				if m.GetLen().Cmp(big.NewInt(length)) != 0 {
 					t.Errorf("Len problem create %s, want %v", m.GetLen(), length)
 				}
 
@@ -270,7 +271,7 @@ func TestMemory_Remove(t *testing.T) {
 						t.Errorf("%s = %+v, want %+v", name, check, want)
 					}
 
-					if m.GetLen().Cmp(tt.wantLen) != 0 {
+					if m.GetLen().Cmp(big.NewInt(tt.wantLen)) != 0 {
 						t.Errorf("Len problem after delete %s, want %v", m.GetLen(), tt.wantLen)
 					}
 				}

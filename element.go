@@ -1,14 +1,16 @@
 // Package casset help you to create memory on double linked list.
 package casset
 
+import "math/big"
+
 // Element is an struct of double-linked list.
 type Element[T any] struct {
-	NextElement IElement[T]
-	PrevElement IElement[T]
+	nextElement IElement[T]
+	prevElement IElement[T]
 
-	// Know about belong Memory
-	Memory IMemory[T]
-	Value  T
+	// Know about belong memory
+	memory IMemory[T]
+	value  T
 }
 
 // Correction of interface.
@@ -16,68 +18,63 @@ var _ IElement[any] = (*Element[any])(nil)
 
 func NewElement[T any](v T) IElement[T] {
 	return &Element[T]{
-		Value: v,
-	}
-}
-
-func (e *Element[T]) Clone() IElement[T] {
-	return &Element[T]{
-		Value: e.Value,
+		value: v,
 	}
 }
 
 func (e *Element[T]) cleanup() {
-	e.Memory = nil
-	e.NextElement = nil
-	e.PrevElement = nil
+	e.memory = nil
+	e.nextElement = nil
+	e.prevElement = nil
+	e.value = *new(T)
 }
 
 func (e *Element[T]) GetMemory() IMemory[T] {
-	return e.Memory
+	return e.memory
 }
 
 func (e *Element[T]) SetMemory(m IMemory[T]) IElement[T] {
-	e.Memory = m
+	e.memory = m
 
 	return e
 }
 
 func (e *Element[T]) GetValue() T {
-	return e.Value
+	return e.value
 }
 
 func (e *Element[T]) GetNextElement() IElement[T] {
-	if e.NextElement != nil {
-		return e.NextElement
+	if e.nextElement != nil {
+		return e.nextElement
 	}
 
 	return nil
 }
 
 func (e *Element[T]) GetPrevElement() IElement[T] {
-	if e.PrevElement != nil {
-		return e.PrevElement
+	if e.prevElement != nil {
+		return e.prevElement
 	}
 
 	return nil
 }
 
 func (e *Element[T]) SetValue(v T) IElement[T] {
-	e.Value = v
+	e.value = v
 
 	return e
 }
 
 // SetNextElement set next element.
 func (e *Element[T]) SetNextElement(element IElement[T]) IElement[T] {
-	e.NextElement = element
+	e.nextElement = element
 
 	return e
 }
 
 // SetPrevElement set previous element.
 func (e *Element[T]) SetPrevElement(element IElement[T]) IElement[T] {
-	e.PrevElement = element
+	e.prevElement = element
 
 	return e
 }
@@ -85,17 +82,17 @@ func (e *Element[T]) SetPrevElement(element IElement[T]) IElement[T] {
 // Delete this element, reconnect prev and next if exist.
 // When deleting current element, it will set current element to last or next element.
 func (e *Element[T]) Delete() IElement[T] {
-	if e.Memory == nil {
-		if e.PrevElement != nil {
-			e.PrevElement.SetNextElement(e.NextElement)
+	if e.memory == nil {
+		if e.prevElement != nil {
+			e.prevElement.SetNextElement(e.nextElement)
 		}
 
-		if e.NextElement != nil {
-			e.NextElement.SetPrevElement(e.PrevElement)
+		if e.nextElement != nil {
+			e.nextElement.SetPrevElement(e.prevElement)
 		}
 
 		// set return
-		ret := e.NextElement
+		ret := e.nextElement
 
 		e.cleanup()
 
@@ -103,31 +100,31 @@ func (e *Element[T]) Delete() IElement[T] {
 	}
 
 	// just one element
-	if e.Memory.GetLen().Cmp(1) == 0 {
-		e.Memory.SetFront(nil)
-		e.Memory.SetBack(nil)
-		e.Memory.GetLen().Sub(1)
+	if e.memory.GetLen().Cmp(big.NewInt(1)) == 0 {
+		e.memory.Clear()
 
 		e.cleanup()
 
 		return nil
 	}
 
-	ret := e.NextElement
+	ret := e.nextElement
 
 	switch e {
-	case e.Memory.GetFront():
-		e.Memory.SetFront(e.NextElement)
-		e.NextElement.SetPrevElement(nil)
-	case e.Memory.GetBack():
-		e.Memory.SetBack(e.PrevElement)
-		e.PrevElement.SetNextElement(nil)
+	case e.memory.GetFront():
+		e.memory.SetFront(e.nextElement)
+		e.nextElement.SetPrevElement(nil)
+	case e.memory.GetBack():
+		e.memory.SetBack(e.prevElement)
+		e.prevElement.SetNextElement(nil)
 	default:
-		e.NextElement.SetPrevElement(e.PrevElement)
-		e.PrevElement.SetNextElement(e.NextElement)
+		e.nextElement.SetPrevElement(e.prevElement)
+		e.prevElement.SetNextElement(e.nextElement)
 	}
 
-	e.Memory.GetLen().Sub(1)
+	e.memory.GetLen().Set(func(i *big.Int) *big.Int {
+		return i.Sub(i, big.NewInt(1))
+	})
 
 	e.cleanup()
 
@@ -136,36 +133,40 @@ func (e *Element[T]) Delete() IElement[T] {
 
 // Next generate new element with argument and return new element.
 func (e *Element[T]) Next(v T) IElement[T] {
-	if e.NextElement == nil {
-		e.NextElement = &Element[T]{
-			Memory:      e.Memory,
-			PrevElement: e,
-			Value:       v,
+	if e.nextElement == nil {
+		e.nextElement = &Element[T]{
+			memory:      e.memory,
+			prevElement: e,
+			value:       v,
 		}
 
-		if e.Memory != nil {
-			e.Memory.SetBack(e.NextElement)
-			e.Memory.GetLen().Add(1)
+		if e.memory != nil {
+			e.memory.SetBack(e.nextElement)
+			e.memory.GetLen().Set(func(i *big.Int) *big.Int {
+				return i.Add(i, big.NewInt(1))
+			})
 		}
 	}
 
-	return e.NextElement
+	return e.nextElement
 }
 
 // Prev generate new element with argument and return new element.
 func (e *Element[T]) Prev(v T) IElement[T] {
-	if e.PrevElement == nil {
-		e.PrevElement = &Element[T]{
-			Memory:      e.Memory,
-			NextElement: e,
-			Value:       v,
+	if e.prevElement == nil {
+		e.prevElement = &Element[T]{
+			memory:      e.memory,
+			nextElement: e,
+			value:       v,
 		}
 
-		if e.Memory != nil {
-			e.Memory.SetFront(e.PrevElement)
-			e.Memory.GetLen().Add(1)
+		if e.memory != nil {
+			e.memory.SetFront(e.prevElement)
+			e.memory.GetLen().Set(func(i *big.Int) *big.Int {
+				return i.Add(i, big.NewInt(1))
+			})
 		}
 	}
 
-	return e.PrevElement
+	return e.prevElement
 }
