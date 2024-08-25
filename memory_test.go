@@ -149,40 +149,41 @@ func TestMemory_Delete(t *testing.T) {
 
 func TestMemory_Remove(t *testing.T) {
 	type args struct {
-		e1 func(IMemory[any]) IElement[any]
-		e2 func(IMemory[any]) IElement[any]
+		e1 func(IMemory[any], IElement[any]) IElement[any]
+		e2 func(IMemory[any], IElement[any]) IElement[any]
 	}
 
 	tests := []struct {
 		name        string
 		fields      func() (IMemory[any], int64)
+		current     func(IMemory[any]) IElement[any]
 		args        args
-		wantFront   func(IMemory[any]) (IElement[any], IElement[any])
-		wantCurrent func(IMemory[any]) (IElement[any], IElement[any])
-		wantBack    func(IMemory[any]) (IElement[any], IElement[any])
+		wantFront   func(IMemory[any], IElement[any]) (IElement[any], IElement[any])
+		wantCurrent func(IMemory[any], IElement[any]) (IElement[any], IElement[any])
+		wantBack    func(IMemory[any], IElement[any]) (IElement[any], IElement[any])
 		wantLen     int64
 	}{
 		{
 			name: "remove all",
 			fields: func() (IMemory[any], int64) {
 				m := NewMemory[any]()
-				m.Hold(func(h map[string]IElement[any]) {
-					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
-				})
 
 				return m, 5
 			},
+			current: func(m IMemory[any]) IElement[any] {
+				return m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+			},
 			args: args{
-				e1: func(m IMemory[any]) IElement[any] { return nil },
-				e2: func(m IMemory[any]) IElement[any] { return nil },
+				e1: func(m IMemory[any], c IElement[any]) IElement[any] { return nil },
+				e2: func(m IMemory[any], c IElement[any]) IElement[any] { return nil },
 			},
-			wantFront: func(m IMemory[any]) (IElement[any], IElement[any]) {
+			wantFront: func(m IMemory[any], c IElement[any]) (IElement[any], IElement[any]) {
 				return nil, nil
 			},
-			wantCurrent: func(m IMemory[any]) (IElement[any], IElement[any]) {
+			wantCurrent: func(m IMemory[any], c IElement[any]) (IElement[any], IElement[any]) {
 				return nil, nil
 			},
-			wantBack: func(m IMemory[any]) (IElement[any], IElement[any]) {
+			wantBack: func(m IMemory[any], c IElement[any]) (IElement[any], IElement[any]) {
 				return nil, nil
 			},
 			wantLen: 1,
@@ -191,33 +192,25 @@ func TestMemory_Remove(t *testing.T) {
 			name: "basic test",
 			fields: func() (IMemory[any], int64) {
 				m := NewMemory[any]()
-				m.Hold(func(h map[string]IElement[any]) {
-					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
-				})
+
 				return m, 5
 			},
+			current: func(m IMemory[any]) IElement[any] {
+				return m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+			},
 			args: args{
-				e1: func(m IMemory[any]) IElement[any] { return nil },
-				e2: func(m IMemory[any]) IElement[any] {
-					var e IElement[any]
-					m.Hold(func(h map[string]IElement[any]) {
-						e = h["current"]
-					})
-					return e.GetPrevElement()
+				e1: func(m IMemory[any], c IElement[any]) IElement[any] { return nil },
+				e2: func(m IMemory[any], c IElement[any]) IElement[any] {
+					return c.GetPrevElement()
 				},
 			},
-			wantCurrent: func(m IMemory[any]) (IElement[any], IElement[any]) {
-				var current IElement[any]
-				m.Hold(func(h map[string]IElement[any]) {
-					current = h["current"]
-				})
-
+			wantCurrent: func(m IMemory[any], c IElement[any]) (IElement[any], IElement[any]) {
 				return &Element[any]{
-					nextElement: current.GetNextElement(),
+					nextElement: c.GetNextElement(),
 					prevElement: nil,
 					memory:      m,
 					value:       3,
-				}, current
+				}, c
 			},
 			wantLen: 2,
 		},
@@ -225,22 +218,16 @@ func TestMemory_Remove(t *testing.T) {
 			name: "reverse test",
 			fields: func() (IMemory[any], int64) {
 				m := NewMemory[any]()
-				m.Hold(func(h map[string]IElement[any]) {
-					h["current"] = m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
-				})
-
 				return m, 5
 			},
+			current: func(m IMemory[any]) IElement[any] {
+				return m.GetFront().Next(1).Next(2).Next(3).Next(4).GetPrevElement()
+			},
 			args: args{
-				e1: func(m IMemory[any]) IElement[any] {
-					var e IElement[any]
-					m.Hold(func(h map[string]IElement[any]) {
-						e = h["current"]
-					})
-
-					return e
+				e1: func(m IMemory[any], c IElement[any]) IElement[any] {
+					return c
 				},
-				e2: func(m IMemory[any]) IElement[any] { return m.GetFront() },
+				e2: func(m IMemory[any], c IElement[any]) IElement[any] { return m.GetFront() },
 			},
 			wantLen: 2,
 		},
@@ -249,11 +236,18 @@ func TestMemory_Remove(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.fields != nil {
 				m, length := tt.fields()
+
+				currentFn := tt.current
+				if currentFn == nil {
+					currentFn = func(IMemory[any]) IElement[any] { return nil }
+				}
+				current := tt.current(m)
+
 				if m.GetLen().Cmp(big.NewInt(length)) != 0 {
 					t.Errorf("Len problem create %s, want %v", m.GetLen(), length)
 				}
 
-				wants := map[string]func(IMemory[any]) (IElement[any], IElement[any]){
+				wants := map[string]func(IMemory[any], IElement[any]) (IElement[any], IElement[any]){
 					"Front":   tt.wantFront,
 					"Current": tt.wantCurrent,
 					"Back":    tt.wantBack,
@@ -264,8 +258,8 @@ func TestMemory_Remove(t *testing.T) {
 						continue
 					}
 
-					want, check := wantFn(m)
-					m.RemoveRange(tt.args.e1(m), tt.args.e2(m))
+					want, check := wantFn(m, current)
+					m.RemoveRange(tt.args.e1(m, current), tt.args.e2(m, current))
 
 					if !reflect.DeepEqual(check, want) {
 						t.Errorf("%s = %+v, want %+v", name, check, want)

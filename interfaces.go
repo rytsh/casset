@@ -33,7 +33,6 @@ type IElement[T any] interface {
 type IMemory[T any] interface {
 	// Clear remove all elements.
 	Clear() IMemory[T]
-	Hold(f func(h map[string]IElement[T]))
 	// RemoveRange remove range of elements including e1 and e2.
 	// If e1 is nil, start from front.
 	// If e2 is nil, end at back.

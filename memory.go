@@ -7,9 +7,8 @@ import (
 
 // Memory is main struct of linked list.
 type Memory[T any] struct {
-	front    IElement[T]
-	back     IElement[T]
-	elements map[string]IElement[T]
+	front IElement[T]
+	back  IElement[T]
 
 	len ILen
 }
@@ -26,17 +25,11 @@ func (m *Memory[T]) Clear() IMemory[T] {
 	m.front = element
 	m.back = element
 
-	m.elements = make(map[string]IElement[T])
-
 	m.len = NewLen().Set(func(_ *big.Int) *big.Int {
 		return big.NewInt(1)
 	})
 
 	return m
-}
-
-func (m *Memory[T]) Hold(f func(h map[string]IElement[T])) {
-	f(m.elements)
 }
 
 func (m *Memory[T]) Range() iter.Seq[IElement[T]] {
