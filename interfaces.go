@@ -2,7 +2,6 @@ package casset
 
 import (
 	"iter"
-	"math/big"
 )
 
 type IElement[T any] interface {
@@ -38,21 +37,21 @@ type IMemory[T any] interface {
 	// If e2 is nil, end at back.
 	// Both e1 and e2 are nil, remove all.
 	RemoveRange(e1, e2 IElement[T])
-	GetLen() ILen
+	// ToSliceElements converts a range of elements to a slice-backed element block.
+	// The original elements are removed and replaced with a SliceElement.
+	// If e1 is nil, start from front.
+	// If e2 is nil, end at back.
+	// Returns the first SliceElement of the converted range.
+	ToSliceElements(e1, e2 IElement[T]) IElement[T]
+	// Len returns the number of elements in the memory.
+	Len() uint64
+	// IncLen increments the length by 1.
+	IncLen()
+	// DecLen decrements the length by 1.
+	DecLen()
 	GetFront() IElement[T]
 	SetFront(e IElement[T])
 	GetBack() IElement[T]
 	SetBack(e IElement[T])
 	Range() iter.Seq[IElement[T]]
-}
-
-type ILen interface {
-	Value() big.Int
-	Set(func(*big.Int) *big.Int) ILen
-	// Cmp compares x and y on current element and returns:
-	//
-	//   -1 if x <  y
-	//    0 if x == y
-	//   +1 if x >  y
-	Cmp(y *big.Int) int
 }

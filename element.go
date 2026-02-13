@@ -1,8 +1,6 @@
 // Package casset help you to create memory on double linked list.
 package casset
 
-import "math/big"
-
 // Element is an struct of double-linked list.
 type Element[T any] struct {
 	nextElement IElement[T]
@@ -100,7 +98,7 @@ func (e *Element[T]) Delete() IElement[T] {
 	}
 
 	// just one element
-	if e.memory.GetLen().Cmp(big.NewInt(1)) == 0 {
+	if e.memory.Len() == 1 {
 		e.memory.Clear()
 
 		e.cleanup()
@@ -122,9 +120,7 @@ func (e *Element[T]) Delete() IElement[T] {
 		e.prevElement.SetNextElement(e.nextElement)
 	}
 
-	e.memory.GetLen().Set(func(i *big.Int) *big.Int {
-		return i.Sub(i, big.NewInt(1))
-	})
+	e.memory.DecLen()
 
 	e.cleanup()
 
@@ -142,9 +138,7 @@ func (e *Element[T]) Next(v T) IElement[T] {
 
 		if e.memory != nil {
 			e.memory.SetBack(e.nextElement)
-			e.memory.GetLen().Set(func(i *big.Int) *big.Int {
-				return i.Add(i, big.NewInt(1))
-			})
+			e.memory.IncLen()
 		}
 	}
 
@@ -162,9 +156,7 @@ func (e *Element[T]) Prev(v T) IElement[T] {
 
 		if e.memory != nil {
 			e.memory.SetFront(e.prevElement)
-			e.memory.GetLen().Set(func(i *big.Int) *big.Int {
-				return i.Add(i, big.NewInt(1))
-			})
+			e.memory.IncLen()
 		}
 	}
 

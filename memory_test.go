@@ -1,7 +1,6 @@
 package casset
 
 import (
-	"math/big"
 	"reflect"
 	"testing"
 )
@@ -91,7 +90,7 @@ func TestMemory_Delete(t *testing.T) {
 	testMemory := NewMemory[any]()
 	current := testMemory.GetFront().Next(1).Next(2).Next(3).Next(4).Prev(nil).Prev(nil)
 
-	if testMemory.GetLen().Cmp(big.NewInt(5)) != 0 {
+	if testMemory.Len() != 5 {
 		t.Errorf("Len problem")
 	}
 
@@ -99,7 +98,7 @@ func TestMemory_Delete(t *testing.T) {
 	testMemory.GetFront().Delete()
 	testMemory.GetBack().Delete()
 
-	if testMemory.GetLen().Cmp(big.NewInt(2)) != 0 {
+	if testMemory.Len() != 2 {
 		t.Errorf("Len problem after delete")
 	}
 
@@ -129,7 +128,7 @@ func TestMemory_Delete(t *testing.T) {
 
 	testMemory.GetFront().Delete()
 
-	if testMemory.GetLen().Cmp(big.NewInt(1)) != 0 {
+	if testMemory.Len() != 1 {
 		t.Errorf("Len problem after delete")
 	}
 
@@ -155,17 +154,17 @@ func TestMemory_Remove(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		fields      func() (IMemory[any], int64)
+		fields      func() (IMemory[any], uint64)
 		current     func(IMemory[any]) IElement[any]
 		args        args
 		wantFront   func(IMemory[any], IElement[any]) (IElement[any], IElement[any])
 		wantCurrent func(IMemory[any], IElement[any]) (IElement[any], IElement[any])
 		wantBack    func(IMemory[any], IElement[any]) (IElement[any], IElement[any])
-		wantLen     int64
+		wantLen     uint64
 	}{
 		{
 			name: "remove all",
-			fields: func() (IMemory[any], int64) {
+			fields: func() (IMemory[any], uint64) {
 				m := NewMemory[any]()
 
 				return m, 5
@@ -190,7 +189,7 @@ func TestMemory_Remove(t *testing.T) {
 		},
 		{
 			name: "basic test",
-			fields: func() (IMemory[any], int64) {
+			fields: func() (IMemory[any], uint64) {
 				m := NewMemory[any]()
 
 				return m, 5
@@ -216,7 +215,7 @@ func TestMemory_Remove(t *testing.T) {
 		},
 		{
 			name: "reverse test",
-			fields: func() (IMemory[any], int64) {
+			fields: func() (IMemory[any], uint64) {
 				m := NewMemory[any]()
 				return m, 5
 			},
@@ -243,8 +242,8 @@ func TestMemory_Remove(t *testing.T) {
 				}
 				current := tt.current(m)
 
-				if m.GetLen().Cmp(big.NewInt(length)) != 0 {
-					t.Errorf("Len problem create %s, want %v", m.GetLen(), length)
+				if m.Len() != length {
+					t.Errorf("Len problem create %d, want %v", m.Len(), length)
 				}
 
 				wants := map[string]func(IMemory[any], IElement[any]) (IElement[any], IElement[any]){
@@ -265,8 +264,8 @@ func TestMemory_Remove(t *testing.T) {
 						t.Errorf("%s = %+v, want %+v", name, check, want)
 					}
 
-					if m.GetLen().Cmp(big.NewInt(tt.wantLen)) != 0 {
-						t.Errorf("Len problem after delete %s, want %v", m.GetLen(), tt.wantLen)
+					if m.Len() != tt.wantLen {
+						t.Errorf("Len problem after delete %d, want %v", m.Len(), tt.wantLen)
 					}
 				}
 			}
